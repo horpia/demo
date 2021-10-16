@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Water Waves Effect</title>
+</head>
+<body>
+<h1>Water Waves Effect</h1>
+<form action="#" onsubmit="return false" style="display: flex; flex-wrap: wrap">
+	<div style="margin-right: 10px">
+		<label for="speed">Speed:</label><br>
+		<input id="speed" type="range" min="1" max="5" value="1" step="1">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="distance">Distance:</label><br>
+		<input id="distance" type="range" min="1" max="50" value="10" step="1">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="glare">Glare:</label><br>
+		<input id="glare" type="range" min="1" max="100" value="32" step="1">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="image-src">Image:</label><br>
+		<input id="image-src" onchange="start()" type="file" accept="image/*">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="noise-src">Noise Image:</label><br>
+		<input id="noise-src" onchange="start()" type="file" accept="image/*">
+	</div>
+</form>
+<div style="display: flex; flex-wrap: wrap">
+	<div id="output" style="margin-right: 10px">
+		<h2>Transformed Image:</h2>
+	</div>
+	<div id="displacement" style="margin-right: 10px">
+		<h2>Displacement Map:</h2>
+	</div>
+	<div id="noise">
+		<h2>Noise Image:</h2>
+	</div>
+</div>
+<p>
+	This effect has been used in Floor796 project. See swimming pool here: https://floor796.com/#t2r2,683,88
+</p>
+<script>
+	const FPS = 24;
+	const LOOP_LENGTH = 120;
+	const WAVES_PERIOD = LOOP_LENGTH >> 2;
+
+	const els = {
+		speed: document.getElementById('speed'),
+		distance: document.getElementById('distance'),
+		glare: document.getElementById('glare'),
+		imageSrc: document.getElementById('image-src'),
+		noiseSrc: document.getElementById('noise-src'),
+		output: document.getElementById('output'),
+		displacement: document.getElementById('displacement'),
+		noise: document.getElementById('noise'),
+	};
+
+	let timerId = 0;
+
+	document.addEventListener('DOMContentLoaded', start);
+
+	function stop() {
+		clearInterval(timerId);
+		document.querySelectorAll('canvas, img').forEach(el => el.remove());
+	}
+
+	async function start() {
+		stop();
+
+		let bgImage;
+		if (els.imageSrc.files.length > 0) {
+			bgImage = await loadImage(URL.createObjectURL(els.imageSrc.files[0]));
+		} else {
+			bgImage = await loadImage('img.png');
+		}
+
+		const bgCanvas = document.createElement('canvas');
+		bgCanvas.width = bgImage.naturalWidth;
+		bgCanvas.height = bgImage.naturalHeight;
+		bgCanvas.getContext('2d').drawImage(bgImage, 0, 0);
+
+		let wavesImage;
+		if (els.noiseSrc.files.length > 0) {
+			wavesImage = await loadImage(URL.createObjectURL(els.noiseSrc.files[0]));
+		} else {
+			wavesImage = await loadImage('waves.jpg');
+		}
+
+		const wavesCanvas = document.createElement('canvas');
+		wavesCanvas.width = wavesImage.naturalWidth;
+		wavesCanvas.height = wavesImage.naturalHeight;
+
+		const workCanvas = document.createElement('canvas');
+		workCanvas.width = bgCanvas.width;
+		workCanvas.height = bgCanvas.height;
+
+		let level = 0;
+
+		const render = () => {
+			level++;
+			mixWaves(level % LOOP_LENGTH, wavesCanvas, wavesImage);
+			makeDisplacement(workCanvas, bgCanvas, wavesCanvas);
+		};
+
+		timerId = setInterval(render, 1000 / FPS);
+		render();
+
+		els.output.appendChild(workCanvas);
+		els.displacement.appendChild(wavesCanvas);
+		els.noise.appendChild(wavesImage);
+	}
+
+	function mixWaves(level, wavesCanvas, wavesImage) {
+		const scales = [[1, 1], [-1, 1], [-1, -1], [1, -1]];
+		const frames = [0, 2, 1, 3];
+		const frameA = Math.floor((level % LOOP_LENGTH) / WAVES_PERIOD);
+		const alpha = (level % WAVES_PERIOD) / WAVES_PERIOD;
+		const frameB = (frameA + 1) % 4;
+		const speed = parseInt(els.speed.value);
+		let shiftX = ((WAVES_PERIOD + level) * speed) % wavesCanvas.width;
+
+		const ctx = wavesCanvas.getContext('2d');
+		ctx.save();
+		let [scaleX, scaleY] = scales[frames[frameA]];
+		ctx.scale(scaleX, scaleY);
+		ctx.translate(
+			scaleX === -1 ? -wavesCanvas.width : 0,
+			scaleY === -1 ? -wavesCanvas.height : 0
+		);
+		ctx.drawImage(wavesImage, scaleX * shiftX, 0);
+		ctx.drawImage(wavesImage, scaleX * (-wavesCanvas.width + shiftX), 0);
+		ctx.restore();
+
+		if (frameB === 0) {
+			shiftX = ((level % WAVES_PERIOD) * speed) % wavesCanvas.width;
+		}
+
+		ctx.save();
+		ctx.globalAlpha = alpha;
+		[scaleX, scaleY] = scales[frames[frameB]];
+		ctx.scale(scaleX, scaleY);
+		ctx.translate(
+			scaleX === -1 ? -wavesCanvas.width : 0,
+			scaleY === -1 ? -wavesCanvas.height : 0
+		);
+		ctx.drawImage(wavesImage, scaleX * shiftX, 0);
+		ctx.drawImage(wavesImage, scaleX * (-wavesCanvas.width + shiftX), 0);
+		ctx.restore();
+	}
+
+	function makeDisplacement(workCanvas, bgCanvas, wavesCanvas) {
+		const workCtx = workCanvas.getContext('2d');
+		const workImageData = workCtx.getImageData(0, 0, workCanvas.width, workCanvas.height);
+		const workPixels = workImageData.data;
+		const bgPixels = bgCanvas.getContext('2d').getImageData(0, 0, workCanvas.width, workCanvas.height).data;
+		const wavesPixels = wavesCanvas.getContext('2d').getImageData(0, 0, wavesCanvas.width, wavesCanvas.height).data;
+
+		let i = 0;
+		const wavesHeight = wavesCanvas.height;
+		const wavesWidth = wavesCanvas.width;
+		const wavesPixelsCount = wavesPixels.length >> 2;
+		const maxShiftDelta = parseInt(els.distance.value);
+		const maxLightDelta = parseInt(els.glare.value);
+
+		for (let y = 0, toY = workCanvas.height; y < toY; y++) {
+			for (let x = 0, toX = workCanvas.width; x < toX; x++) {
+				const wavesX = x % wavesWidth;
+				const wavesY = y % wavesHeight;
+				const wavesIndex = wavesY * wavesWidth + wavesX;
+				const wavesIndexInv = wavesPixelsCount - wavesIndex;
+				const levelY = wavesPixels[wavesIndex << 2] / 256;
+				const levelX = wavesPixels[wavesIndexInv << 2] / 256;
+				const shiftY = (maxShiftDelta * levelY) >> 0;
+				const shiftX = (maxShiftDelta * levelX) >> 0;
+				const shiftLight = (maxLightDelta * Math.min(levelY, levelX)) >> 0;
+
+				let newY = y - shiftY;
+				if (newY < 0) {
+					newY = 0;
+				} else if (newY > toY - 1) {
+					newY = toY - 1;
+				}
+
+				let newX = x - shiftX;
+				if (newX < 0) {
+					newX = 0;
+				} else if (newX > toX - 1) {
+					newX = toX - 1;
+				}
+
+				const shiftedIndex = (newY * toX + newX) << 2;
+				workPixels[i++] = Math.min(0xFF, bgPixels[shiftedIndex] + shiftLight);
+				workPixels[i++] = Math.min(0xFF, bgPixels[shiftedIndex + 1] + shiftLight);
+				workPixels[i++] = Math.min(0xFF, bgPixels[shiftedIndex + 2] + shiftLight);
+				workPixels[i++] = bgPixels[shiftedIndex + 3];
+			}
+		}
+
+		workCtx.putImageData(workImageData, 0, 0);
+	}
+
+	async function loadImage(url) {
+		return new Promise((resolve, reject) => {
+			const img = new Image();
+			img.crossOrigin = 'anonymous';
+			img.onload = () => resolve(img);
+			img.onerror = () => reject();
+			img.src = url;
+		});
+	}
+</script>
+</body>
+</html>
