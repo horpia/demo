@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smoke Effect</title>
+</head>
+<body>
+<h1>Smoke Effect</h1>
+<form action="#" onsubmit="return false" style="display: flex; flex-wrap: wrap">
+	<div style="margin-right: 10px">
+		<label for="thickness">Thickness:</label><br>
+		<input id="thickness" name="thickness" type="range" min="50" max="200" value="100" step="20">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="length">Length:</label><br>
+		<input id="length" name="length" type="range" min="50" max="500" value="200" step="20">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="speed">Speed:</label><br>
+		<input id="speed" name="speed" type="range" min="0" max="10" value="2" step="1">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="wind-angle">Wind Angle &deg;:</label><br>
+		<input id="wind-angle" name="windAngle" type="range" min="0" max="360" value="0" step="5">
+	</div>
+	<div style="margin-right: 10px">
+		<label for="rot-angle">Rotation Angle &deg;:</label><br>
+		<input id="rot-angle" name="rotAngle" type="range" min="0" max="360" value="0" step="5">
+	</div>
+</form>
+<div style="display: flex; flex-wrap: wrap">
+
+</div>
+<p>
+	The animation has a 60 frame loop (number of frames can be customized).<br>
+	This effect has been used in <a href="https://floor796.com/">Floor796 project</a>.
+</p>
+<div>
+	<canvas width="800" height="600"></canvas>
+</div>
+<script type="module">
+	import {Smoke} from "./smoke.js";
+
+	document.addEventListener('DOMContentLoaded', () => {
+		const canvas = document.querySelector('canvas');
+		const ctx = canvas.getContext('2d');
+		let smoke;
+		let needRender = false;
+
+		setInterval(() => {
+			if (smoke) {
+				smoke.animate();
+				needRender = true;
+			}
+		}, 1000 / 12);
+
+		const render = () => {
+			requestAnimationFrame(render);
+			if (smoke && needRender) {
+				needRender = false;
+				smoke.render(ctx, canvas.width >> 1, canvas.height >> 1);
+			}
+		};
+
+		const update = () => {
+			smoke = new Smoke(Object.fromEntries([...inputs].map(el => [el.name, +el.value])));
+		};
+
+		const inputs = document.querySelectorAll('input[name]');
+		inputs.forEach(el => el.oninput = update);
+
+		update();
+		render();
+	});
+
+</script>
+</body>
+</html>
