@@ -65,6 +65,8 @@ export class ServicesDiagram {
 		this.#addService(3, 'AerospikeNoTtlSsd', 'Aerospike Hot Storage');
 		this.#addService(4, 'AerospikeNoTtlHdd', 'Aerospike Cold Storage');
 		this.#addService(4, 'disk', 'File System');
+		this.#addService(4, 'Elastic', 'ElasticSearch');
+		this.#addService(4, 'MySQLVotes', 'MySQL for Votes');
 
 		this.#addConnection('client', 'nginx');
 		this.#addConnection('nginx', 'php');
@@ -87,6 +89,9 @@ export class ServicesDiagram {
 
 		this.#addConnection('php', 'AerospikeFeeds');
 		this.#addConnection('php', 'AerospikeNoTtlSsd');
+
+		this.#addConnection('php', 'Elastic');
+		this.#addConnection('php', 'MySQLVotes');
 
 		this.#addGroup('Primary MySQL Cluster', ['MySQLMaster', 'MySQLSlave1']);
 		this.#addGroup('Secondary MySQL Cluster', ['MySQLSecondaryMaster', 'MySQLSecondarySlave1']);
