@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Services Call Diagram</title>
+	<style>
+		html, body {
+			background-color: #fff;
+			padding: 0;
+			margin: 0;
+			overflow: hidden;
+			font: 14px Helvetica Neue, Helvetica, Arial, sans-serif;
+        }
+
+		main {
+			display: flex;
+			align-items: stretch;
+			width: 100vw;
+			height: 100vh;
+			overflow: hidden;
+        }
+
+		.scripts {
+			width: 300px;
+			overflow: auto;
+			border-right: 1px solid #ccc;
+        }
+
+		.scripts > div {
+			margin: 10px;
+		}
+
+		.scripts > div > div {
+			cursor: pointer;
+			padding: 5px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+        }
+
+		.scripts > div > div:hover {
+			text-decoration: underline;
+        }
+
+		.scripts > div > div.selected {
+			font-weight: bold;
+        }
+
+		.diagram {
+			flex: 1;
+        }
+	</style>
+</head>
+<body>
+<main>
+<div class="scripts"></div>
+<div class="diagram"></div>
+</main>
+<script type="module">
+	import {ServicesDiagram} from "./ServicesDiagram.js";
+	import {Telemetry} from "./Telemetry.js";
+
+	document.addEventListener('DOMContentLoaded', () => {
+		const diagram = new ServicesDiagram();
+		const telemetry = new Telemetry(diagram);
+
+		document.querySelector('.diagram').appendChild(diagram.canvas);
+		document.querySelector('.scripts').appendChild(telemetry.element);
+	});
+</script>
+</body>
+</html>
